@@ -1,0 +1,36 @@
+# Default training configuration for NIFTY volatility forecasting baselines
+
+data:
+  source: yfinance        # yfinance | bhavcopy
+  symbol: "^NSEI"
+  start: "2007-01-01"
+  data_path: data/processed/nifty.parquet
+
+realized_variance:
+  estimator: yang_zhang   # parkinson | garman_klass | rogers_satchell | yang_zhang
+
+target:
+  horizon: 1              # Forecast horizon in trading days
+
+walk_forward:
+  initial_train_size: 1000   # ~4 years
+  refit_freq: 22             # Days between refits for GARCH/XGB
+
+models:
+  - har
+  - garch
+  - egarch
+  - xgb
+
+xgboost:
+  n_estimators: 300
+  max_depth: 4
+  learning_rate: 0.05
+  subsample: 0.8
+  colsample_bytree: 0.8
+  random_state: 42
+
+har_rv:
+  lags: [1, 5, 22]
+
+results_dir: results

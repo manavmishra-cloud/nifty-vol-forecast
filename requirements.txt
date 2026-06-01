@@ -1,0 +1,38 @@
+# Core data manipulation
+numpy>=1.24
+pandas>=2.0
+pyarrow>=14.0
+
+# Visualization
+matplotlib>=3.7
+seaborn>=0.13
+plotly>=5.18
+
+# Notebooks
+jupyter>=1.0
+ipykernel>=6.25
+
+# Data fetching
+yfinance>=0.2.40
+requests>=2.31
+tqdm>=4.66
+
+# Statistics & econometric models
+scipy>=1.11
+statsmodels>=0.14
+scikit-learn>=1.4
+arch>=6.3                # GARCH-family models
+
+# Tree models
+xgboost>=2.0
+lightgbm>=4.1
+
+# Deep learning (install when ready to train)
+# torch>=2.2
+# pytorch-forecasting>=1.0   # Temporal Fusion Transformer
+
+# Hyperparameter tuning
+optuna>=3.4
+
+# Testing
+pytest>=7.4
