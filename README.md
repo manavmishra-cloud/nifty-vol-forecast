@@ -99,18 +99,28 @@ nifty-vol-forecast/
 
 ## Current results
 
-*In development — results table will populate as models complete.*
+**Dataset:** NIFTY 50 daily OHLCV, 2007-09-18 to 2026-06-01 (4,585 trading days, 3,584 out-of-sample forecasts).
+**Realized variance estimator:** Yang-Zhang.
+**Walk-forward:** expanding window, initial training = 1,000 days, refit every 22 days for GARCH/XGB.
 
-| Model | 1-day QLIKE | 5-day QLIKE | 22-day QLIKE | DM vs HAR |
-|---|---|---|---|---|
-| GARCH(1,1) | TBD | TBD | TBD | TBD |
-| EGARCH | TBD | TBD | TBD | TBD |
-| HAR-RV (baseline) | TBD | TBD | TBD | — |
-| Realized GARCH | TBD | TBD | TBD | TBD |
-| XGBoost | TBD | TBD | TBD | TBD |
-| LSTM | TBD | TBD | TBD | TBD |
-| TFT | TBD | TBD | TBD | TBD |
-| **Transformer** | **TBD** | **TBD** | **TBD** | **TBD** |
+| Model | 1-day QLIKE | 1-day MSE log-var | DM vs HAR (p-value) |
+|---|---|---|---|
+| **HAR-RV** (baseline) | **0.625** | **0.688** | — |
+| GARCH(1,1) | 0.646 | 1.150 | -21.68 (p<0.0001) *** |
+| XGBoost | 0.710 | 0.696 | -0.71 (p=0.48) ns |
+| EGARCH | TBD | TBD | TBD |
+| Realized GARCH | TBD | TBD | TBD |
+| LSTM | TBD | TBD | TBD |
+| TFT | TBD | TBD | TBD |
+| **Transformer** | **TBD** | **TBD** | **TBD** |
+
+### Key findings (preliminary)
+
+1. **HAR-RV is the strongest baseline.** Consistent with global literature (Corsi 2009); confirmed for Indian equity markets.
+2. **GARCH(1,1) is significantly worse than HAR-RV** (DM = -21.68, p < 0.0001) — the realized-variance-based approach dominates classical conditional variance models on daily NIFTY data.
+3. **Off-the-shelf XGBoost does NOT beat HAR-RV.** Forecasts are statistically indistinguishable (DM = -0.71, p = 0.48). A clean negative result against the ML-beats-classical narrative.
+
+Open question: under what regimes / horizons / feature sets does ML actually beat HAR? This is the direction of the planned arXiv paper.
 
 ## Reproducibility
 
