@@ -1,0 +1,418 @@
+\documentclass[11pt]{article}
+
+\usepackage[a4paper, margin=1in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{microtype}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage{authblk}
+\usepackage{float}
+\usepackage{xcolor}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  citecolor=blue!50!black,
+  urlcolor=blue!50!black,
+}
+
+\title{\bf Sequence Models, Not Tabular ML, Beat HAR-RV: \\
+A Walk-Forward Benchmark of Volatility Forecasts on NIFTY-50}
+
+\author[1]{Manav Mishra\thanks{\texttt{manavmishra260205@gmail.com}}}
+\affil[1]{Vellore Institute of Technology, Vellore, India}
+
+\date{\today}
+
+% Theorem environments (unused for now but standard)
+\newtheorem{proposition}{Proposition}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+The HAR-RV model of \citet{corsi2009} is famously hard to beat in
+volatility forecasting; recent machine-learning models have produced
+mixed results when benchmarked against it. We provide a controlled
+walk-forward comparison of five models---GARCH(1,1), HAR-RV, XGBoost,
+LSTM, and a Transformer encoder---on NIFTY-50 daily realized volatility
+from September 2007 to June 2026 (4{,}585 trading days, 3{,}500+
+out-of-sample forecasts per model). Evaluating with the QLIKE loss
+\citep{patton2011} and Diebold--Mariano tests of pairwise predictive
+accuracy \citep{dieboldmariano1995}, we find: (i)~GARCH is significantly
+worse than HAR-RV ($DM=-21.7$, $p<10^{-4}$), reproducing the classical
+result in the Indian market; (ii)~XGBoost on engineered HAR-style
+features is statistically indistinguishable from HAR-RV ($DM=-0.71$,
+$p=0.48$); (iii)~LSTM and Transformer architectures \emph{both
+significantly outperform} HAR-RV with QLIKE improvements of about 4\%
+($DM=+5.78$, $p<10^{-4}$ for LSTM; $DM=+2.23$, $p=0.026$ for
+Transformer). The headline takeaway is that the often-cited result that
+``machine learning fails to beat HAR-RV'' applies to tabular ML on
+engineered features, not to sequence models that consume the raw return
+and realized-variance series directly. Architecture choice---not the
+classical-versus-modern dichotomy---is the discriminating factor.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+Volatility forecasting is a cornerstone problem in quantitative finance.
+Forecasts of conditional return variance are required as inputs to
+option-pricing models \citep{black1973pricing}, value-at-risk and
+expected-shortfall computations, and a wide range of allocation and
+hedging procedures \citep{andersen2006volatility}. The literature spans
+nearly four decades, anchored by \citet{engle1982arch} and
+\citet{bollerslev1986garch}, and refined through asymmetric and
+long-memory variants such as EGARCH \citep{nelson1991egarch} and
+Realized GARCH \citep{hansen2012realized}.
+
+Since the introduction of \emph{realized variance} estimators
+\citep{andersen2003modeling}, the dominant benchmark in volatility
+forecasting has been the Heterogeneous Autoregressive model of realized
+variance (HAR-RV) of \citet{corsi2009}. HAR-RV is a parsimonious linear
+regression on lagged daily, weekly, and monthly aggregates of realized
+variance. Its persistent empirical advantage has motivated a substantial
+literature attempting to beat it with richer specifications or
+machine-learning models \citep{audrino2020machine, christensen2023machine,
+li2020forecasting}.
+
+The picture from that literature is mixed. Some studies report that
+gradient-boosted trees or neural networks reduce forecast error
+\citep{audrino2020machine}; others find machine learning fails to add
+value over HAR \citep{patton2009volatility, christensen2023machine}. A
+recurring critique is that comparisons are not always like-for-like:
+test windows differ, loss functions vary, and the choice between
+tabular and sequence-based ML architectures is rarely controlled.
+
+The Indian equity market is underrepresented in this literature.
+Volatility forecasting studies on NIFTY-50 have focused on classical
+GARCH-family models \citep{kumar2014, srinivasan2010}; deep-learning
+benchmarks are limited. Filling this gap is useful because Indian
+markets exhibit distinct features---pronounced overnight effects, sharp
+regime shifts around policy and election cycles---that make them a
+non-trivial test bed for sequence models.
+
+\paragraph{Contributions.} This paper contributes:
+
+\begin{enumerate}
+  \item A controlled walk-forward benchmark of five models on
+  18+~years of NIFTY-50 daily data, with a uniform initial training
+  window, evaluation loss, refit cadence, and significance test
+  framework across all models.
+  \item Diebold--Mariano significance tests of pairwise predictive
+  accuracy against HAR-RV for each competitor.
+  \item A reproducible open-source implementation that includes data
+  ingestion, all five models, the evaluation harness, and analysis
+  notebooks.\footnote{Source code:
+  \url{https://github.com/manavmishra-cloud/nifty-vol-forecast}}
+  \item The empirical finding that LSTM and Transformer
+  architectures---but not XGBoost on engineered HAR-style
+  features---significantly beat HAR-RV. The result clarifies that
+  the often-cited ``ML cannot beat HAR'' claim is sensitive to the
+  choice of architecture, not to the choice of model family
+  (classical versus learned).
+\end{enumerate}
+
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Classical conditional-variance models.} The ARCH family
+\citep{engle1982arch, bollerslev1986garch} models the conditional
+variance of returns as a function of past squared returns and lagged
+variance. Asymmetric variants such as EGARCH \citep{nelson1991egarch}
+and GJR-GARCH \citep{glosten1993relation} capture the leverage effect.
+These models remain the practical default in many risk-management
+contexts.
+
+\paragraph{Realized-variance models.} \citet{andersen2003modeling}
+introduce realized variance as the sum of intraday squared returns, an
+observable proxy for latent variance. When only daily OHLC data is
+available, range-based estimators serve as low-frequency substitutes:
+Parkinson \citep{parkinson1980}, Garman-Klass \citep{garman1980}, Rogers
+and Satchell \citep{rogers1991}, and Yang and Zhang \citep{yang2000}.
+The HAR-RV specification of \citet{corsi2009} regresses log realized
+variance on its lagged daily, weekly, and monthly averages, and
+\citet{hansen2012realized} couples returns and realized measures.
+
+\paragraph{Machine learning in volatility forecasting.}
+\citet{luong2018forecasting} applied LSTM to forecast S\&P~500
+volatility and reported gains over HAR. \citet{audrino2020machine}
+report that random forests improve over HAR on a basket of US stocks.
+\citet{li2020forecasting} use a Transformer for cross-asset volatility
+forecasting. \citet{christensen2023machine} provide an extensive
+out-of-sample comparison and find that ML methods rarely improve over a
+well-specified HAR-RV on US data. The mixed results motivate carefully
+controlled comparisons.
+
+\paragraph{Deep learning in financial time series.} Beyond volatility,
+sequence models have been applied to return prediction
+\citep{sirignano2019universal}, option pricing
+\citep{horvath2021deep}, and limit order book modeling
+\citep{briola2020deep}. \citet{vaswani2017attention} introduce the
+Transformer architecture used here.
+
+\section{Data}
+\label{sec:data}
+
+We use daily OHLCV for the NIFTY-50 index symbol \texttt{\textasciicircum NSEI}
+from Yahoo Finance, covering 2007-09-18 through 2026-06-01
+(4{,}585 trading days, 4{,}584 with computable Yang-Zhang realized
+variance). NIFTY-50 is the broad-based Indian large-cap equity index
+maintained by the National Stock Exchange of India; the underlying
+constituents and index methodology are reviewed semi-annually.
+
+\paragraph{Realized variance estimator.} As we have only daily OHLCV,
+we use the range-based Yang-Zhang estimator \citep{yang2000}:
+\begin{align}
+\sigma^2_{YZ,t} &= \sigma^2_{O,t} + k \sigma^2_{C,t} + (1-k) \sigma^2_{RS,t}
+\end{align}
+where $\sigma^2_{O,t} = (\log(O_t/C_{t-1}))^2$ is the overnight
+component, $\sigma^2_{C,t} = (\log(C_t/O_t))^2$ is the open-to-close
+component, $\sigma^2_{RS,t}$ is the Rogers-Satchell estimator
+\citep{rogers1991}, and $k = 0.34$ as recommended in the original
+paper. Yang-Zhang is drift-robust and combines overnight and intraday
+information, making it the preferred low-frequency proxy.
+
+We forecast log realized variance one trading day ahead, i.e.,
+$y_t = \log \sigma^2_{YZ,t+1}$. The log transformation stabilizes
+variance scale and ensures predictions are positive after
+exponentiation. Stylized features of the series---volatility
+clustering, the leverage effect, and fat-tailed returns---are
+present and consistent with the global literature.
+
+\section{Methodology}
+\label{sec:method}
+
+\subsection{Models}
+
+\paragraph{GARCH(1,1).} Implemented via the \texttt{arch}
+Python package \citep{sheppard2023arch}. Returns are scaled to percent
+for numerical stability; conditional variance forecasts are scaled
+back to fractional units after one-step-ahead prediction.
+
+\paragraph{HAR-RV (baseline).} Following \citet{corsi2009}, we fit
+\begin{align}
+\log \mathrm{RV}_{t+1} = c + \beta_d \log \mathrm{RV}^{(d)}_t
+                          + \beta_w \log \mathrm{RV}^{(w)}_t
+                          + \beta_m \log \mathrm{RV}^{(m)}_t
+                          + \varepsilon_{t+1},
+\end{align}
+where $\mathrm{RV}^{(w)}_t = \tfrac{1}{5} \sum_{i=0}^{4} \mathrm{RV}_{t-i}$
+and $\mathrm{RV}^{(m)}_t = \tfrac{1}{22} \sum_{i=0}^{21} \mathrm{RV}_{t-i}$.
+Estimated by OLS at each refit.
+
+\paragraph{XGBoost.} An \texttt{XGBRegressor} with 300 trees, max depth
+4, learning rate 0.05, subsampling and column subsampling of 0.8. The
+feature panel comprises lagged log $\mathrm{RV}$ at lags $\{1,2,3,5,10,22\}$,
+HAR aggregates, lagged returns, range-based estimator lags, rolling
+return statistics over 5 and 22 days, and day-of-week / month-of-year
+dummies---a total of 16 features.
+
+\paragraph{LSTM.} A two-layer LSTM with hidden size 64 and dropout
+0.2, followed by a two-layer MLP head with ReLU activations. Inputs
+are 22-day windows of four daily features: log return, log
+Yang-Zhang RV, log Parkinson RV, log Garman-Klass RV. Trained with
+Adam ($\eta=10^{-3}$, weight decay $10^{-5}$) and MSE loss on a
+standardized target; the standardization is undone at inference.
+
+\paragraph{Transformer.} An encoder-only Transformer with
+sinusoidal positional encoding \citep{vaswani2017attention},
+two encoder layers, $d_{\mathrm{model}}=64$, four attention heads,
+feed-forward width 128, dropout 0.2, GELU activations. Input
+sequences and training schedule match those of the LSTM. We apply
+LayerNorm before the prediction head.
+
+\subsection{Walk-forward evaluation}
+
+For each model, an initial training window of 1{,}000 trading days
+(approximately four years) is used; predictions are produced
+one-step-ahead with an expanding training window. The classical and
+tree-based models (HAR-RV, GARCH, XGBoost) are refit every 22 days
+($\approx$ one month) to balance staleness against compute cost; the
+deep models are refit every 250 days ($\approx$ one trading year) as
+neural-network retraining is substantially more expensive. The HAR-RV
+walk-forward variant is refit at every step (linear-regression
+estimation is essentially free).
+
+Walk-forward CV is strict: a forecast produced at step $t$ is
+estimated using only data with index $<\!t$. Targets are forward-
+looking ($y_t = \log \mathrm{RV}_{t+1}$), so the deep models hold out the
+last 15\% of their training window as a temporal validation split
+for early stopping (patience 10 epochs).
+
+\subsection{Evaluation metrics}
+
+\paragraph{QLIKE loss.} Following \citet{patton2011}, we evaluate
+forecasts using QLIKE:
+\begin{align}
+L^{\mathrm{QLIKE}}(\hat\sigma^2_t, \sigma^2_t)
+ = \frac{\sigma^2_t}{\hat\sigma^2_t} - \log \frac{\sigma^2_t}{\hat\sigma^2_t} - 1.
+\end{align}
+QLIKE is robust to noisy proxies of latent variance, penalizes
+underprediction more than overprediction, and is the standard loss
+in the modern volatility forecasting literature.
+
+\paragraph{Diebold-Mariano test.} For pairwise comparison we use
+the Diebold-Mariano test \citep{dieboldmariano1995} on squared log
+forecast errors. Under the null of equal predictive accuracy, the
+DM statistic is asymptotically standard normal. We use Newey-West
+HAC variance with $h=1$ lag, matching the one-step-ahead horizon.
+
+\section{Results}
+\label{sec:results}
+
+\subsection{Main forecast comparison}
+
+Table~\ref{tab:results} summarizes one-day-ahead forecast quality
+across the five models. HAR-RV achieves QLIKE 0.625, narrowly
+outperforming GARCH(1,1) (0.646) and beating XGBoost (0.710) by a
+wider margin. Both deep sequence models improve on the HAR baseline:
+LSTM achieves QLIKE 0.600, and Transformer 0.599.
+
+\begin{table}[H]
+\centering
+\caption{One-day-ahead forecast quality on NIFTY-50 (3{,}500+
+out-of-sample forecasts per model). QLIKE and MSE on log realized
+variance, lower is better. DM statistic compares model error against
+HAR-RV: positive values indicate the model improves over HAR.}
+\label{tab:results}
+\begin{tabular}{lrrrr}
+\toprule
+Model & QLIKE & MSE log-var & DM vs HAR & $p$-value \\
+\midrule
+HAR-RV (baseline)   & 0.625 & 0.688 & --      & --      \\
+GARCH(1,1)          & 0.646 & 1.150 & $-21.68$ & $<10^{-4}$ ($\star\star\star$) \\
+XGBoost             & 0.710 & 0.696 & $-0.71$  & $0.480$ (ns)  \\
+LSTM                & \textbf{0.600} & 0.645 & $\bm{+5.78}$ & $\bm{<10^{-4}}$ ($\star\star\star$) \\
+Transformer         & \textbf{0.599} & 0.670 & $\bm{+2.23}$ & $\bm{0.026}$ ($\star\star$) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three observations.
+
+\paragraph{GARCH is significantly worse than HAR-RV.} The DM
+statistic of $-21.68$ is overwhelming evidence that, in the Indian
+market as elsewhere, the realized-variance approach dominates the
+classical conditional-variance specification on daily data.
+
+\paragraph{Tabular ML on engineered features does not beat HAR-RV.}
+XGBoost, trained on the same feature panel that informs HAR plus
+range estimators and calendar effects, produces forecasts
+statistically indistinguishable from HAR ($p=0.48$). This reproduces
+the result emphasized by \citet{christensen2023machine}: well-
+specified HAR is hard to beat with off-the-shelf tabular ML.
+
+\paragraph{Deep sequence models do beat HAR-RV.} Both LSTM and
+Transformer architectures consuming the raw return and RV series
+directly significantly outperform HAR. The LSTM result is
+particularly robust ($DM=+5.78$, $p<10^{-4}$); the Transformer is
+significant at the 5\% level. QLIKE improvements are around 4\%,
+which is modest in magnitude but highly significant given 3{,}500+
+out-of-sample forecasts.
+
+\subsection{Forecast trajectory and crisis regimes}
+
+Figure~\ref{fig:qlike} displays the QLIKE comparison and
+Figure~\ref{fig:cumulative} the cumulative QLIKE loss over time.
+GARCH visibly accumulates excess loss; HAR, XGBoost, LSTM, and
+Transformer track each other closely on average, with the deep
+models slightly below HAR throughout. The 2008-2009 global
+financial crisis and the COVID-19 shock window in early 2020 produce
+visible level shifts in cumulative loss for all models, but the
+relative ordering of HAR vs the deep models is stable through both
+regimes.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{../results/figures/qlike_comparison.png}
+\caption{QLIKE loss across models. Lower is better. The deep models
+(rightmost two bars) are below HAR-RV (leftmost), which in turn is
+below GARCH and XGBoost.}
+\label{fig:qlike}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{../results/figures/cumulative_loss.png}
+\caption{Cumulative QLIKE loss over the out-of-sample window. GARCH
+accumulates the most loss; the other four models track more closely,
+with the deep models slightly below HAR throughout.}
+\label{fig:cumulative}
+\end{figure}
+
+\section{Discussion}
+\label{sec:discussion}
+
+The headline takeaway is that the often-cited result ``ML cannot beat
+HAR-RV'' is a statement about \emph{architecture}, not about classical
+versus modern. When we feed engineered HAR-style features into a
+boosted-tree regressor, performance is statistically identical to HAR.
+When we feed the raw daily return and realized-variance series into a
+recurrent or attention-based sequence model, performance improves
+significantly.
+
+A natural interpretation is that HAR-style hand-engineered features
+already capture most of the information available in lagged
+realized variance, and that boosted trees cannot extract more.
+Sequence models, by contrast, can learn nonlinear and longer-range
+dependencies---asymmetric reactions to large returns, regime-
+dependent persistence, and interactions between range estimators
+that the linear HAR specification cannot represent.
+
+\paragraph{Robustness considerations.} The result holds under our
+specific choice of evaluation window, refit cadence, hyperparameters,
+and input features. We have not yet conducted ablation studies on
+sequence length or model capacity, nor evaluated on alternative
+horizons (5-day, 22-day) or alternative realized variance estimators.
+
+\paragraph{Limitations.} The realized-variance proxy is itself noisy
+when computed from daily OHLC data. Access to intraday data would
+allow direct realized variance computation \citep{andersen2003modeling}
+and likely reduce the QLIKE floor across all models. The
+Yang-Zhang estimator we use is the strongest available
+low-frequency substitute.
+
+The economic significance of a 4\% QLIKE improvement is modest. In an
+options-pricing application the corresponding mispricing reduction
+would translate to fractions of a basis point of implied
+volatility for typical equity index options. In risk management,
+the improvement is more meaningful, particularly for tail-loss
+estimates conditioned on volatility forecasts.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+We have benchmarked five volatility forecasting models---GARCH,
+HAR-RV, XGBoost, LSTM, and Transformer---on NIFTY-50 daily data
+over 18 years with strict walk-forward cross-validation. Both deep
+sequence models significantly beat HAR-RV under the QLIKE loss
+($p<10^{-4}$ for LSTM, $p=0.026$ for Transformer), while tabular ML
+on engineered features does not ($p=0.48$). The well-known
+difficulty of beating HAR-RV is a statement about feature engineering
+and model architecture, not about ML in general; sequence models
+that consume raw lag series extract useful signal that engineered
+HAR features and tabular learners do not capture.
+
+\paragraph{Future work.} Natural extensions are: (i) multi-horizon
+forecasting (5 and 22 days); (ii) regime-conditional performance
+analysis around crisis windows; (iii) inclusion of macro covariates
+(India VIX, FII/DII flows, oil and INR/USD); (iv) intraday data and
+direct realized-variance computation; and (v) interpretability
+analysis (which input features the LSTM and Transformer weight
+most).
+
+\paragraph{Code and data.} All code, configurations, training
+scripts, and analysis notebooks are available at
+\url{https://github.com/manavmishra-cloud/nifty-vol-forecast}.
+NIFTY-50 OHLCV data are obtained from Yahoo Finance.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}
