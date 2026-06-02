@@ -36,26 +36,27 @@ A Walk-Forward Benchmark of Volatility Forecasts on NIFTY-50}
 \maketitle
 
 \begin{abstract}
-The HAR-RV model of \citet{corsi2009} is famously hard to beat in
-volatility forecasting; recent machine-learning models have produced
-mixed results when benchmarked against it. We provide a controlled
+The HAR-RV model of \citet{corsi2009} is widely reported as
+difficult to beat in volatility forecasting; recent machine-learning
+benchmarks have produced mixed results. We present a controlled
 walk-forward comparison of five models---GARCH(1,1), HAR-RV, XGBoost,
 LSTM, and a Transformer encoder---on NIFTY-50 daily realized volatility
-from September 2007 to June 2026 (4{,}585 trading days, 3{,}500+
+from September 2007 through June 2026 (4{,}585 trading days; 3{,}500+
 out-of-sample forecasts per model). Evaluating with the QLIKE loss
-\citep{patton2011} and Diebold--Mariano tests of pairwise predictive
+\citep{patton2011} and Diebold--Mariano tests of equal predictive
 accuracy \citep{dieboldmariano1995}, we find: (i)~GARCH is significantly
-worse than HAR-RV ($DM=-21.7$, $p<10^{-4}$), reproducing the classical
+worse than HAR-RV ($DM=-21.7$, $p<10^{-4}$), reproducing the standard
 result in the Indian market; (ii)~XGBoost on engineered HAR-style
 features is statistically indistinguishable from HAR-RV ($DM=-0.71$,
 $p=0.48$); (iii)~LSTM and Transformer architectures \emph{both
-significantly outperform} HAR-RV with QLIKE improvements of about 4\%
-($DM=+5.78$, $p<10^{-4}$ for LSTM; $DM=+2.23$, $p=0.026$ for
-Transformer). The headline takeaway is that the often-cited result that
-``machine learning fails to beat HAR-RV'' applies to tabular ML on
-engineered features, not to sequence models that consume the raw return
-and realized-variance series directly. Architecture choice---not the
-classical-versus-modern dichotomy---is the discriminating factor.
+significantly outperform} HAR-RV under QLIKE, with improvements of
+roughly 4\% ($DM=+5.78$, $p<10^{-4}$ for LSTM; $DM=+2.23$, $p=0.026$
+for the Transformer). The headline takeaway is that the often-cited
+result ``machine learning fails to beat HAR-RV'' applies to tabular
+ML on engineered features, not to sequence models that consume the
+raw return and realized-variance series directly. Architecture
+choice---not the classical-versus-modern dichotomy---is the
+discriminating factor.
 \end{abstract}
 
 \section{Introduction}
@@ -81,21 +82,21 @@ literature attempting to beat it with richer specifications or
 machine-learning models \citep{audrino2020machine, christensen2023machine,
 li2020forecasting}.
 
-The picture from that literature is mixed. Some studies report that
-gradient-boosted trees or neural networks reduce forecast error
-\citep{audrino2020machine}; others find machine learning fails to add
-value over HAR \citep{patton2009volatility, christensen2023machine}. A
-recurring critique is that comparisons are not always like-for-like:
-test windows differ, loss functions vary, and the choice between
-tabular and sequence-based ML architectures is rarely controlled.
+The picture from that literature is mixed: some studies report that
+gradient-boosted trees or neural networks reduce forecast error;
+others find machine learning fails to add value over HAR
+\citep{christensen2023machine}. A recurring critique is that
+comparisons are not always like-for-like: test windows differ, loss
+functions vary, and the choice between tabular and sequence-based ML
+architectures is rarely controlled.
 
 The Indian equity market is underrepresented in this literature.
-Volatility forecasting studies on NIFTY-50 have focused on classical
-GARCH-family models \citep{kumar2014, srinivasan2010}; deep-learning
-benchmarks are limited. Filling this gap is useful because Indian
-markets exhibit distinct features---pronounced overnight effects, sharp
-regime shifts around policy and election cycles---that make them a
-non-trivial test bed for sequence models.
+Volatility forecasting studies on NIFTY-50 have largely focused on
+classical GARCH-family specifications; comprehensive deep-learning
+benchmarks remain limited. Filling this gap is useful because Indian
+markets exhibit distinct features---pronounced overnight effects,
+sharp regime shifts around policy and election cycles---that make
+them a non-trivial test bed for sequence models.
 
 \paragraph{Contributions.} This paper contributes:
 
@@ -140,14 +141,14 @@ variance on its lagged daily, weekly, and monthly averages, and
 \citet{hansen2012realized} couples returns and realized measures.
 
 \paragraph{Machine learning in volatility forecasting.}
-\citet{luong2018forecasting} applied LSTM to forecast S\&P~500
-volatility and reported gains over HAR. \citet{audrino2020machine}
-report that random forests improve over HAR on a basket of US stocks.
-\citet{li2020forecasting} use a Transformer for cross-asset volatility
-forecasting. \citet{christensen2023machine} provide an extensive
-out-of-sample comparison and find that ML methods rarely improve over a
-well-specified HAR-RV on US data. The mixed results motivate carefully
-controlled comparisons.
+\citet{christensen2023machine} provide an extensive out-of-sample
+comparison of tree-based and neural network methods against
+HAR-family specifications, and find that machine learning rarely
+improves on a well-specified HAR-RV on US equity data. Several
+earlier studies report improvements from boosted trees or recurrent
+networks on individual stock or index volatility, but results are
+heterogeneous across markets, sample windows, and loss functions.
+The mixed picture motivates the present like-for-like comparison.
 
 \paragraph{Deep learning in financial time series.} Beyond volatility,
 sequence models have been applied to return prediction
@@ -163,8 +164,7 @@ We use daily OHLCV for the NIFTY-50 index symbol \texttt{\textasciicircum NSEI}
 from Yahoo Finance, covering 2007-09-18 through 2026-06-01
 (4{,}585 trading days, 4{,}584 with computable Yang-Zhang realized
 variance). NIFTY-50 is the broad-based Indian large-cap equity index
-maintained by the National Stock Exchange of India; the underlying
-constituents and index methodology are reviewed semi-annually.
+maintained by the National Stock Exchange of India.
 
 \paragraph{Realized variance estimator.} As we have only daily OHLCV,
 we use the range-based Yang-Zhang estimator \citep{yang2000}:
@@ -378,12 +378,15 @@ and likely reduce the QLIKE floor across all models. The
 Yang-Zhang estimator we use is the strongest available
 low-frequency substitute.
 
-The economic significance of a 4\% QLIKE improvement is modest. In an
-options-pricing application the corresponding mispricing reduction
-would translate to fractions of a basis point of implied
-volatility for typical equity index options. In risk management,
-the improvement is more meaningful, particularly for tail-loss
-estimates conditioned on volatility forecasts.
+The economic significance of a 4\% improvement in QLIKE warrants
+careful interpretation. The QLIKE metric measures forecast quality
+in a loss that combines proportional and log-ratio terms; a 4\%
+reduction at one-day horizon translates to a modest but non-trivial
+sharpening of variance forecasts. In risk-management applications,
+particularly tail-loss estimates conditioned on forecast variance,
+the gain is the most meaningful; in option pricing, the implied-
+volatility-level effect is smaller and harder to monetize without
+careful transaction-cost analysis.
 
 \section{Conclusion}
 \label{sec:conclusion}
