@@ -135,9 +135,12 @@ def main():
     parser.add_argument("--download", action="store_true", help="Force re-download of NIFTY data")
     parser.add_argument("--initial-train-size", type=int, default=1000, help="Trading days for initial training (~4 yrs)")
     parser.add_argument("--horizon", type=int, default=1, help="Forecast horizon in days")
-    parser.add_argument("--models", nargs="+", default=["har", "garch", "xgb"], choices=["har", "garch", "egarch", "xgb"])
+    parser.add_argument("--models", nargs="+", default=["har", "garch", "xgb"],
+                        choices=["har", "garch", "egarch", "xgb", "lstm", "transformer"])
     parser.add_argument("--results-dir", type=str, default="results")
     parser.add_argument("--refit-freq", type=int, default=22, help="Days between refits for GARCH/XGB")
+    parser.add_argument("--deep-refit-freq", type=int, default=250, help="Days between refits for LSTM/Transformer (~1 yr)")
+    parser.add_argument("--seq-len", type=int, default=22, help="Sequence length for deep models")
     args = parser.parse_args()
 
     data_path = Path(args.data)
@@ -166,6 +169,26 @@ def main():
         preds.to_csv(results_dir / "metrics" / "xgb_predictions.csv", index=False)
         all_predictions["xgb"] = preds
         all_results["xgb"] = evaluate_forecast(preds["y_true"].values, preds["y_pred"].values, "xgb")
+
+    # Deep models (LSTM, Transformer) — predictions emit log RV; convert to variance
+    for deep_name in ("lstm", "transformer"):
+        if deep_name in args.models:
+            from src.training.train_deep import run_deep_model, deep_predictions_to_variance
+            raw = run_deep_model(
+                df,
+                model_name=deep_name,
+                initial_train_size=args.initial_train_size,
+                refit_freq=args.deep_refit_freq,
+                seq_len=args.seq_len,
+            )
+            converted = deep_predictions_to_variance(raw)
+            preds = converted[["index", "date"]].assign(
+                y_true=converted["y_true_var"],
+                y_pred=converted["y_pred_var"],
+            )
+            preds.to_csv(results_dir / "metrics" / f"{deep_name}_predictions.csv", index=False)
+            all_predictions[deep_name] = preds
+            all_results[deep_name] = evaluate_forecast(preds["y_true"].values, preds["y_pred"].values, deep_name)
 
     # Cross-model summary
     summary_path = results_dir / "metrics" / "all_models_summary.json"

@@ -99,28 +99,31 @@ nifty-vol-forecast/
 
 ## Current results
 
-**Dataset:** NIFTY 50 daily OHLCV, 2007-09-18 to 2026-06-01 (4,585 trading days, 3,584 out-of-sample forecasts).
+**Dataset:** NIFTY 50 daily OHLCV, 2007-09-18 to 2026-06-01 (4,585 trading days, ~3,580 out-of-sample forecasts).
 **Realized variance estimator:** Yang-Zhang.
-**Walk-forward:** expanding window, initial training = 1,000 days, refit every 22 days for GARCH/XGB.
+**Walk-forward:** expanding window, initial training = 1,000 days, refit every 22 days for GARCH/XGB and every 250 days for deep models.
 
-| Model | 1-day QLIKE | 1-day MSE log-var | DM vs HAR (p-value) |
-|---|---|---|---|
-| **HAR-RV** (baseline) | **0.625** | **0.688** | — |
-| GARCH(1,1) | 0.646 | 1.150 | -21.68 (p<0.0001) *** |
-| XGBoost | 0.710 | 0.696 | -0.71 (p=0.48) ns |
-| EGARCH | TBD | TBD | TBD |
-| Realized GARCH | TBD | TBD | TBD |
-| LSTM | TBD | TBD | TBD |
-| TFT | TBD | TBD | TBD |
-| **Transformer** | **TBD** | **TBD** | **TBD** |
+| Model | 1-day QLIKE | 1-day MSE log-var | DM vs HAR | Significance |
+|---|---|---|---|---|
+| HAR-RV (baseline) | 0.625 | 0.688 | — | — |
+| GARCH(1,1) | 0.646 | 1.150 | -21.68 | HAR significantly better *** |
+| XGBoost | 0.710 | 0.696 | -0.71 (p=0.48) | not significant |
+| **LSTM** | **0.600** | **0.645** | **+5.78** | **LSTM significantly better *** |
+| **Transformer** | **0.599** | **0.670** | **+2.23 (p=0.026)** | **Transformer significantly better ** |
 
-### Key findings (preliminary)
+### Key findings
 
-1. **HAR-RV is the strongest baseline.** Consistent with global literature (Corsi 2009); confirmed for Indian equity markets.
-2. **GARCH(1,1) is significantly worse than HAR-RV** (DM = -21.68, p < 0.0001) — the realized-variance-based approach dominates classical conditional variance models on daily NIFTY data.
-3. **Off-the-shelf XGBoost does NOT beat HAR-RV.** Forecasts are statistically indistinguishable (DM = -0.71, p = 0.48). A clean negative result against the ML-beats-classical narrative.
+1. **GARCH(1,1) is significantly worse than HAR-RV** (DM = -21.68, p < 0.0001) — confirms in the Indian market the established result that realized-variance models dominate classical conditional-variance models on daily data.
+2. **Off-the-shelf XGBoost does NOT beat HAR-RV.** Forecasts are statistically indistinguishable (DM = -0.71, p = 0.48). Tabular ML on engineered HAR-style features adds no value over the classical specification.
+3. **Deep sequence models DO beat HAR-RV.** Both LSTM (DM = +5.78, p < 0.0001) and Transformer (DM = +2.23, p = 0.026) achieve lower QLIKE than the HAR baseline, with the LSTM result being especially robust. Improvement is ~4% on QLIKE — modest in absolute terms but highly statistically significant across 3,500+ out-of-sample forecasts.
 
-Open question: under what regimes / horizons / feature sets does ML actually beat HAR? This is the direction of the planned arXiv paper.
+### Headline takeaway
+
+The well-known result that "ML doesn't beat HAR-RV" applies to **tabular** ML on engineered features — not to **sequence** models that consume the raw return + RV series directly. Architecture matters more than the choice between classical and modern.
+
+![QLIKE comparison across models](results/figures/qlike_comparison.png)
+
+![Cumulative forecast error over time](results/figures/cumulative_loss.png)
 
 ## Reproducibility
 
