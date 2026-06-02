@@ -6,7 +6,8 @@
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.2-EE4C2C?logo=pytorch&logoColor=white)
 ![scikit--learn](https://img.shields.io/badge/scikit--learn-F7931E?logo=scikit-learn&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Status](https://img.shields.io/badge/status-in_development-yellow)
+![Tests](https://github.com/manavmishra-cloud/nifty-vol-forecast/actions/workflows/tests.yml/badge.svg)
+![Status](https://img.shields.io/badge/status-active-success)
 
 ## Research question
 

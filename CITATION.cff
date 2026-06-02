@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+title: "nifty-vol-forecast: Realized volatility forecasting on NIFTY-50 with GARCH, HAR-RV, and deep sequence models"
+abstract: >
+  An open-source benchmark of classical and modern approaches to one-step-ahead
+  realized volatility forecasting on Indian equity index data. Implements
+  GARCH(1,1), EGARCH, HAR-RV (Corsi 2009), XGBoost, LSTM, and Transformer
+  models under strict walk-forward cross-validation, evaluated with QLIKE
+  loss and Diebold-Mariano tests of pairwise predictive accuracy.
+authors:
+  - family-names: Mishra
+    given-names: Manav
+    affiliation: Vellore Institute of Technology
+    email: manavmishra260205@gmail.com
+repository-code: "https://github.com/manavmishra-cloud/nifty-vol-forecast"
+keywords:
+  - volatility forecasting
+  - realized variance
+  - GARCH
+  - HAR-RV
+  - LSTM
+  - Transformer
+  - market microstructure
+  - quantitative finance
+  - Indian equity markets
+  - NIFTY 50
+license: MIT
