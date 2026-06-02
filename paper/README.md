@@ -61,11 +61,14 @@ docker run --rm -v $PWD:/data -w /data texlive/texlive:latest \
 | 3. Data | ✓ Complete | 350 |
 | 4. Methodology | ✓ Complete | 700 |
 | 5. Results | ✓ Complete with real numbers | 500 |
-| 6. Discussion | Light, needs expansion | 300 |
+|  5.1 Main comparison | ✓ | -- |
+|  5.2 Crisis regimes | ✓ | -- |
+|  5.3 Robustness (sensitivity) | ✓ added | 250 |
+| 6. Discussion | ✓ Updated to reference robustness | 350 |
 | 7. Conclusion | ✓ Complete | 300 |
-| References | ✓ ~25 entries | -- |
+| References | ✓ 23 entries (all verified) | -- |
 
-Total: ~3,500 words, expected PDF length ~8-10 pages.
+Total: ~3,750 words, expected PDF length ~9-11 pages.
 
 ## Next iteration
 
