@@ -79,8 +79,7 @@ variance (HAR-RV) of \citet{corsi2009}. HAR-RV is a parsimonious linear
 regression on lagged daily, weekly, and monthly aggregates of realized
 variance. Its persistent empirical advantage has motivated a substantial
 literature attempting to beat it with richer specifications or
-machine-learning models \citep{audrino2020machine, christensen2023machine,
-li2020forecasting}.
+machine-learning models \citep{audrino2020machine, christensen2023machine}.
 
 The picture from that literature is mixed: some studies report that
 gradient-boosted trees or neural networks reduce forecast error;
@@ -103,8 +102,9 @@ them a non-trivial test bed for sequence models.
 \begin{enumerate}
   \item A controlled walk-forward benchmark of five models on
   18+~years of NIFTY-50 daily data, with a uniform initial training
-  window, evaluation loss, refit cadence, and significance test
-  framework across all models.
+  window, evaluation loss, and significance test framework across
+  all models, and a refit cadence chosen to balance staleness against
+  compute cost per model class.
   \item Diebold--Mariano significance tests of pairwise predictive
   accuracy against HAR-RV for each competitor.
   \item A reproducible open-source implementation that includes data
