@@ -1,0 +1,75 @@
+{
+  "har": {
+    "model": "har_h5",
+    "n_observations": 3580,
+    "mse_log_var": 0.7803607855022427,
+    "qlike": 0.708329555274209,
+    "mincer_zarnowitz": {
+      "alpha": 1.1296797981542228e-05,
+      "beta": 1.4266479942330283,
+      "r_squared": 0.05417585281404891,
+      "alpha_pvalue": 0.2781522530006111,
+      "beta_pvalue": 3.0261823233873366e-45
+    }
+  },
+  "garch": {
+    "model": "garch_h5",
+    "n_observations": 3580,
+    "mse_log_var": 1.2495850415036989,
+    "qlike": 0.6849200715500372,
+    "mincer_zarnowitz": {
+      "alpha": 8.677386102805745e-05,
+      "beta": 0.19686683591452012,
+      "r_squared": 0.006204283449888326,
+      "alpha_pvalue": 5.799888018175075e-20,
+      "beta_pvalue": 2.3750036006433648e-06
+    },
+    "dm_vs_har": -11.841088068377005,
+    "dm_pvalue": 0.0
+  },
+  "xgb": {
+    "model": "xgb_h5",
+    "n_observations": 3558,
+    "mse_log_var": 0.8466157296468373,
+    "qlike": 0.7441267224148433,
+    "mincer_zarnowitz": {
+      "alpha": 4.447218246259741e-06,
+      "beta": 1.5096833435936492,
+      "r_squared": 0.044190601951878405,
+      "alpha_pvalue": 0.6960203289293817,
+      "beta_pvalue": 7.967601321824439e-37
+    },
+    "dm_vs_har": -5.666839550124114,
+    "dm_pvalue": 1.5701704159098995e-08
+  },
+  "lstm": {
+    "model": "lstm_h5",
+    "n_observations": 3559,
+    "mse_log_var": 0.7772802501955738,
+    "qlike": 0.6831163090305785,
+    "mincer_zarnowitz": {
+      "alpha": -5.879612658056253e-05,
+      "beta": 2.6509342755500387,
+      "r_squared": 0.08036723383950595,
+      "alpha_pvalue": 1.7958991427563181e-06,
+      "beta_pvalue": 9.135205467533132e-67
+    },
+    "dm_vs_har": 0.5037825806289428,
+    "dm_pvalue": 0.6144453598142765
+  },
+  "transformer": {
+    "model": "transformer_h5",
+    "n_observations": 3559,
+    "mse_log_var": 0.7831720148027996,
+    "qlike": 0.6960882827307358,
+    "mincer_zarnowitz": {
+      "alpha": -1.9341580359920145e-05,
+      "beta": 1.9805919804358307,
+      "r_squared": 0.056779295815177155,
+      "alpha_pvalue": 0.10112284926397828,
+      "beta_pvalue": 3.95428011130439e-47
+    },
+    "dm_vs_har": -0.1478607771017108,
+    "dm_pvalue": 0.8824610215393371
+  }
+}

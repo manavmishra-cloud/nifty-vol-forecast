@@ -100,31 +100,53 @@ nifty-vol-forecast/
 
 ## Current results
 
-**Dataset:** NIFTY 50 daily OHLCV, 2007-09-18 to 2026-06-01 (4,585 trading days, ~3,580 out-of-sample forecasts).
+**Dataset:** NIFTY 50 daily OHLCV, 2007-09-18 to 2026-06-01 (4,585 trading days, ~3,500 out-of-sample forecasts per cell).
 **Realized variance estimator:** Yang-Zhang.
 **Walk-forward:** expanding window, initial training = 1,000 days, refit every 22 days for GARCH/XGB and every 250 days for deep models.
+**Significance test:** Diebold-Mariano on per-observation QLIKE losses (consistent with the primary metric).
 
-| Model | 1-day QLIKE | 1-day MSE log-var | DM vs HAR | Significance |
+### QLIKE by model and horizon (lower is better, best in **bold**)
+
+| Model | h=1 | h=5 | h=22 |
+|---|---|---|---|
+| HAR-RV (baseline) | 0.625 | 0.708 | 0.969 |
+| GARCH(1,1) | 0.646 | **0.685** | **0.760** |
+| XGBoost | 0.710 | 0.744 | 0.985 |
+| LSTM | **0.600** | 0.683 | 0.902 |
+| Transformer | 0.599 | 0.696 | 1.006 |
+
+### Diebold-Mariano vs HAR-RV (QLIKE-based)
+
+| h | Model | DM | p-value | Verdict |
 |---|---|---|---|---|
-| HAR-RV (baseline) | 0.625 | 0.688 | — | — |
-| GARCH(1,1) | 0.646 | 1.150 | -21.68 | HAR significantly better *** |
-| XGBoost | 0.710 | 0.696 | -0.71 (p=0.48) | not significant |
-| **LSTM** | **0.600** | **0.645** | **+5.78** | **LSTM significantly better *** |
-| **Transformer** | **0.599** | **0.670** | **+2.23 (p=0.026)** | **Transformer significantly better ** |
-
-### Key findings
-
-1. **GARCH(1,1) is significantly worse than HAR-RV** (DM = -21.68, p < 0.0001) — confirms in the Indian market the established result that realized-variance models dominate classical conditional-variance models on daily data.
-2. **Off-the-shelf XGBoost does NOT beat HAR-RV.** Forecasts are statistically indistinguishable (DM = -0.71, p = 0.48). Tabular ML on engineered HAR-style features adds no value over the classical specification.
-3. **Deep sequence models DO beat HAR-RV.** Both LSTM (DM = +5.78, p < 0.0001) and Transformer (DM = +2.23, p = 0.026) achieve lower QLIKE than the HAR baseline, with the LSTM result being especially robust. Improvement is ~4% on QLIKE — modest in absolute terms but highly statistically significant across 3,500+ out-of-sample forecasts.
+| 1 | LSTM | +0.95 | 0.34 | not significant |
+| 1 | Transformer | +0.87 | 0.39 | not significant |
+| 1 | GARCH | -0.24 | 0.81 | not significant |
+| 1 | XGBoost | -1.09 | 0.28 | not significant |
+| 5 | GARCH | +0.40 | 0.69 | not significant |
+| 5 | LSTM | +0.94 | 0.35 | not significant |
+| 5 | **XGBoost** | **-2.28** | **0.023** | **XGB significantly worse than HAR (**)** |
+| 5 | Transformer | +0.55 | 0.58 | not significant |
+| 22 | GARCH | +1.19 | 0.23 | not significant |
+| 22 | LSTM | +1.39 | 0.16 | not significant |
+| 22 | XGBoost | -0.36 | 0.72 | not significant |
+| 22 | Transformer | -0.66 | 0.51 | not significant |
 
 ### Headline takeaway
 
-The well-known result that "ML doesn't beat HAR-RV" applies to **tabular** ML on engineered features — not to **sequence** models that consume the raw return + RV series directly. Architecture matters more than the choice between classical and modern.
+**HAR-RV is hard to beat.** Across all 12 model-horizon combinations tested, no challenger achieves a statistically significant QLIKE improvement over HAR-RV. Numerical differences exist (LSTM lowest at h=1, GARCH lowest at h=22) but lie within the noise band of QLIKE-based DM tests on this sample.
 
-![QLIKE comparison across models](results/figures/qlike_comparison.png)
+The only statistically significant result is the opposite direction: **XGBoost is significantly worse than HAR at h=5**.
 
-![Cumulative forecast error over time](results/figures/cumulative_loss.png)
+This finding aligns with the broader literature (Christensen et al. 2023) confirming HAR's empirical strength, and is documented systematically for the first time on Indian markets.
+
+### Methodological note
+
+An earlier version of this analysis computed DM tests on squared log forecast errors (MSE on log-variance) rather than on QLIKE per-observation losses. Those tests gave the appearance of significant deep-model advantage at h=1 (LSTM DM=+5.78, Transformer DM=+2.23). When DM tests are computed consistently with the primary metric (QLIKE), no advantage rises to significance. See Patton (2011) and Patton & Sheppard (2009) on this consistency requirement.
+
+![QLIKE comparison across models at h=1](results/figures/qlike_comparison.png)
+
+![Cumulative forecast error over time at h=1](results/figures/cumulative_loss.png)
 
 ## Reproducibility
 
