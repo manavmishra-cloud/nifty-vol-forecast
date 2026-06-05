@@ -52,13 +52,18 @@ QLIKE-based DM tests}. Numerical QLIKE values do favor sequence
 models at the one-day horizon (LSTM 0.600 vs HAR 0.625) and
 GARCH-style mean-reverting forecasts at the 22-day horizon (GARCH
 0.760 vs HAR 0.969), but these differences fall within the noise
-band of DM testing on this sample. At the 5-day horizon, XGBoost is
-the only model with a statistically significant result---and it is
-significantly \emph{worse} than HAR. The findings confirm the
-well-known difficulty of beating HAR-RV in a market that has not
-previously received a systematic deep-learning benchmark, and they
-highlight the importance of using a single loss function consistently
-for both evaluation and significance testing.
+band of DM testing on this single-index sample. At the 5-day
+horizon, XGBoost is the only model with a statistically significant
+result---and it is significantly \emph{worse} than HAR. Our
+numerical direction agrees with the recent ML-beats-HAR finding of
+\citet{christensen2023machine} on the cross-section of DJIA
+constituents, but our single-index sample lacks the statistical
+power to confirm the result at conventional significance levels
+under QLIKE-based DM. The findings highlight the importance of
+using a single loss function consistently for both evaluation and
+significance testing, and they suggest that single-asset replications
+of cross-sectional ML-vs-HAR studies should be interpreted with the
+sample-power caveat in mind.
 \end{abstract}
 
 \section{Introduction}
@@ -83,12 +88,14 @@ parsimonious linear regression on lagged daily, weekly, and monthly
 aggregates of realized variance. Its persistent empirical advantage
 has motivated a substantial literature attempting to beat it with
 richer specifications or machine-learning models
-\citep{audrino2020machine, christensen2023machine}. The picture from
-that literature is mixed: some studies report improvements from
-boosted trees or recurrent networks on individual stock or index
-volatility, while \citet{christensen2023machine} -- in the most
-comprehensive recent benchmark on US data -- find that machine
-learning rarely improves on a well-specified HAR-RV.
+\citep{audrino2020machine, christensen2023machine}.
+\citet{christensen2023machine}, in the most comprehensive recent
+US-data benchmark, find that machine learning is competitive with
+and beats the HAR lineage on the cross-section of Dow Jones
+Industrial Average constituents, with gains intensifying at
+longer horizons. Earlier studies on individual stocks and
+indices report heterogeneous results across markets, sample
+windows, and loss functions.
 
 The Indian equity market is underrepresented in this literature.
 Volatility forecasting studies on NIFTY-50 have largely focused on
@@ -117,12 +124,12 @@ them a non-trivial test bed for sequence models.
   \url{https://github.com/manavmishra-cloud/nifty-vol-forecast}}
   \item The empirical finding that, on NIFTY-50 daily data,
   \emph{no model statistically beats HAR-RV under QLIKE-based DM
-  tests at any horizon}. Numerical QLIKE differences exist but lie
-  within the noise band of DM testing on this sample. The result
-  confirms the well-known difficulty of beating HAR-RV, now
-  documented systematically on an Indian-market dataset, and joins
-  recent careful negative-result benchmarks
-  \citep{christensen2023machine}.
+  tests at any horizon}. Numerical QLIKE differences favor sequence
+  models at the one-day horizon and GARCH at the 22-day horizon,
+  numerically consistent in direction with the US-data finding of
+  \citet{christensen2023machine}, but the single-index design
+  used here lacks statistical power to confirm a significant
+  advantage under QLIKE-based DM testing.
 \end{enumerate}
 
 \section{Related Work}
@@ -150,11 +157,15 @@ couples returns and realized measures.
 \paragraph{Machine learning in volatility forecasting.}
 \citet{christensen2023machine} provide an extensive out-of-sample
 comparison of tree-based and neural network methods against
-HAR-family specifications and find that machine learning rarely
-improves on a well-specified HAR-RV on US equity data. Several
-earlier studies report improvements from boosted trees or recurrent
-networks on individual stock or index volatility, but results are
-heterogeneous across markets, sample windows, and loss functions.
+HAR-family specifications on the Dow Jones Industrial Average
+constituents, finding that machine learning beats the HAR lineage
+even when restricted to lagged realized variance as the only
+predictor, with gains intensifying at longer horizons. Their
+result motivates the present systematic Indian-markets replication
+and provides the natural US-data benchmark for our findings.
+Earlier studies on individual stocks and indices report
+heterogeneous results across markets, sample windows, and loss
+functions.
 
 \paragraph{Loss functions and significance testing.}
 \citet{patton2011} establishes QLIKE as a robust loss for volatility
@@ -453,18 +464,23 @@ intervals on the average loss differential on this sample.
 recommends that DM tests be carried out using the same loss
 function as the one used for the primary forecast evaluation.
 
-\paragraph{Should we conclude that ``ML cannot beat HAR-RV'' on
-Indian markets?}
-The honest answer is that, on this particular sample and with these
-particular model specifications, we lack the statistical power to
-distinguish the LSTM and Transformer from HAR at $h=1$, or GARCH
-from HAR at $h=22$. The numerical gaps are economically suggestive
-in directions consistent with intuition: sequence models exploit
-short-horizon dependencies; GARCH-style mean-reverting forecasts
-become more competitive at longer horizons where the conditional
-mean of variance dominates the prediction. But these directions
-should be re-tested on multi-asset panels or longer samples before
-strong claims are made.
+\paragraph{Reconciling with Christensen et al. (2023).}
+Our numerical QLIKE results are consistent in direction with
+\citet{christensen2023machine}: LSTM and Transformer have the
+lowest QLIKE at $h=1$, and the GARCH advantage at $h=22$
+mirrors the longer-horizon gains they report. However, our
+QLIKE-based DM tests do not detect these advantages as significant,
+whereas their cross-sectional panel of 30 DJIA constituents has
+substantially more statistical power than our single-index design.
+Two structural reasons may also play a role: first, NIFTY-50 is
+a single index with a different microstructure than individual US
+large-caps; second, we use the QLIKE-on-QLIKE consistency for DM
+testing, which is more conservative than DM tests run on squared
+log forecast errors, and the loss function used in their
+significance testing may differ. We do not claim our null result
+overturns Christensen et al.; we report it as a sample-power-aware
+single-index replication on a market that has not previously
+received systematic ML benchmarking.
 
 \paragraph{Why is XGBoost significantly worse than HAR at $h=5$?}
 At $h=5$, XGBoost is the one model with a statistically significant

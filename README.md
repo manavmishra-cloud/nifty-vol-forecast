@@ -134,11 +134,11 @@ nifty-vol-forecast/
 
 ### Headline takeaway
 
-**HAR-RV is hard to beat.** Across all 12 model-horizon combinations tested, no challenger achieves a statistically significant QLIKE improvement over HAR-RV. Numerical differences exist (LSTM lowest at h=1, GARCH lowest at h=22) but lie within the noise band of QLIKE-based DM tests on this sample.
+Across all 12 model-horizon combinations tested, no challenger achieves a statistically significant QLIKE improvement over HAR-RV on this single Indian index. Numerical differences exist (LSTM lowest at h=1, GARCH lowest at h=22) but lie within the noise band of QLIKE-based DM tests.
 
 The only statistically significant result is the opposite direction: **XGBoost is significantly worse than HAR at h=5**.
 
-This finding aligns with the broader literature (Christensen et al. 2023) confirming HAR's empirical strength, and is documented systematically for the first time on Indian markets.
+**Relation to Christensen et al. (2023):** Their cross-sectional benchmark on DJIA constituents finds ML *beats* the HAR lineage on US equities, with gains intensifying at longer horizons. Our numerical results agree in direction (LSTM/Transformer best at h=1, GARCH best at h=22) but our single-index design has substantially less statistical power than a 30-stock panel, and our QLIKE-consistent DM tests are more conservative than DM tests run on squared log errors. We report our null as a single-index Indian-market replication, not as evidence overturning their result.
 
 ### Methodological note
 
